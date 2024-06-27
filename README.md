@@ -96,6 +96,17 @@ This project builds on the work of the following individuals. Their contribution
 - **Author:** Kazuhito Takahashi [Twitter](https://twitter.com/KzhtTkhs)
 - **Translation and other improvements:** Nikita Kiselov [GitHub](https://github.com/kinivi)
 
+This FYP was a group effort, and the following authors have significantly contributed to building the research paper and the application:
+
+- Muhammad Ahmad
+- Akmal Afzal
+- Ammar Ali
+- Abu Huraira
+- Muhammad Umair
+- Muhammad Farooq (Supervisor)
+
+Faculty of Computer and Information Technology, Lahore, Pakistan
+
 ## License
 
 This project is licensed under the Apache-2.0 License. See the [LICENSE](LICENSE) file for details.
