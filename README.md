@@ -16,7 +16,7 @@ GestuNova is an application that recognizes hand gestures using MediaPipe and pe
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/YOUR_USERNAME/GestuNova.git
+    git clone https://github.com/Ahmad-Alam/GestuNova.git
     cd GestuNova
     ```
 
@@ -98,4 +98,4 @@ This project builds on the work of the following individuals. Their contribution
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache-2.0 License. See the [LICENSE](LICENSE) file for details.
