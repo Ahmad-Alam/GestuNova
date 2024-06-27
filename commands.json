@@ -1,0 +1,11 @@
+{
+    "open": "xdotool key ctrl+t",
+    "close": "amixer -D pulse sset Master 5%+",
+    "pointer": "amixer -D pulse sset Master 5%-",
+    "okay": "xdotool key ctrl+Tab",
+    "peace": "xdotool key ctrl+Shift+Tab",
+    "call": "xdotool key space",
+    "thumbs up": "scrot 'Cheese_%a-%d%b%y_%H.%M.png'",
+    "thumbs down": "",
+    "rock": ""
+}

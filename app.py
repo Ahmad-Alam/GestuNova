@@ -10,6 +10,7 @@ from collections import deque
 import cv2 as cv
 import numpy as np
 import mediapipe as mp
+import os
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -228,10 +229,19 @@ def calc_landmark_list(image, landmarks):
     return landmark_point
 
 
-def pre_process_landmark(landmark_list):
-    temp_landmark_list = copy.deepcopy(landmark_list)
+def pre_process_landmark(landmark_list, output_dir='data'):
+    # Create the data directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    # Convert to relative coordinates
+    # Step 1: Original Landmark Coordinates
+    original_landmarks = copy.deepcopy(landmark_list)
+    with open(os.path.join(output_dir, 'original_landmarks.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(original_landmarks)
+
+    # Step 2: Convert to relative coordinates
+    temp_landmark_list = copy.deepcopy(landmark_list)
     base_x, base_y = 0, 0
     for index, landmark_point in enumerate(temp_landmark_list):
         if index == 0:
@@ -240,19 +250,30 @@ def pre_process_landmark(landmark_list):
         temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x
         temp_landmark_list[index][1] = temp_landmark_list[index][1] - base_y
 
-    # Convert to a one-dimensional list
-    temp_landmark_list = list(
-        itertools.chain.from_iterable(temp_landmark_list))
+    with open(os.path.join(output_dir, 'relative_coordinates.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(temp_landmark_list)
 
-    # Normalization
-    max_value = max(list(map(abs, temp_landmark_list)))
+    # Step 3: Convert to a one-dimensional list
+    flattened_landmarks = list(itertools.chain.from_iterable(temp_landmark_list))
+
+    with open(os.path.join(output_dir, 'flattened_landmarks.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(flattened_landmarks)
+
+    # Step 4: Normalization
+    max_value = max(list(map(abs, flattened_landmarks)))
 
     def normalize_(n):
         return n / max_value
 
-    temp_landmark_list = list(map(normalize_, temp_landmark_list))
+    normalized_landmarks = list(map(normalize_, flattened_landmarks))
 
-    return temp_landmark_list
+    with open(os.path.join(output_dir, 'normalized_landmarks.csv'), 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(normalized_landmarks)
+
+    return normalized_landmarks
 
 
 def pre_process_point_history(image, point_history):
