@@ -98,12 +98,12 @@ This project builds on the work of the following individuals. Their contribution
 
 This FYP was a group effort, and the following authors have significantly contributed to building the research paper and the application:
 
+- Muhammad Farooq (Supervisor)
 - Muhammad Ahmad
 - Akmal Afzal
 - Ammar Ali
 - Abu Huraira
 - Muhammad Umair
-- Muhammad Farooq (Supervisor)
 
 Faculty of Computer and Information Technology, Lahore, Pakistan
 
