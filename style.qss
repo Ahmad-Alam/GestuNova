@@ -1,0 +1,80 @@
+/* General Styling */
+QWidget {
+    background-color: #282c34; /* Dark background */
+    color: #abb2bf;             /* Light text */
+    font-family: "Segoe UI";   /* Modern font */
+    font-size: 12pt;
+}
+
+/* Heading */
+h1 {
+    color: #e06c75; /* Reddish accent */
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 10px; /* Add some space below the heading */
+}
+
+h2 {
+    color: #56b6c2; /* Cyan accent */
+    font-size: 11pt;
+}
+
+/* Labels */
+QLabel {
+    padding: 0px;
+}
+
+/* Line Edits */
+QLineEdit {
+    background-color: #3e4451;  /* Darker input field */
+    border: 1px solid #56b6c2; /* Subtle border */
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Push Buttons */
+QPushButton {
+    background-color: #56b6c2;  /* Cyan button */
+    color: #282c34;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+}
+
+QPushButton:hover {
+    background-color: #61afef; /* Lighter cyan on hover */
+}
+
+QPushButton:pressed {
+    background-color: #c678dd; /* Purple on press */
+}
+
+/* Video Label */
+QLabel#video_label {
+    border: 2px solid #999; 
+    border-radius: 8px; /* Rounded corners for the video area */
+    background-color: #000000;
+}
+
+/* Layout Spacings */
+QGridLayout, QVBoxLayout, QHBoxLayout {
+    spacing: 10px;
+}
+
+/* Scroll Area */
+QScrollArea {
+    border: none;
+}
+
+QScrollArea > QWidget > QWidget {
+    background-color: transparent; /* Make scroll area content transparent */
+}
+
+/* Additional Styling (Optional) */
+QToolTip {
+    background-color: #3e4451;
+    color: #abb2bf;
+    border: 1px solid #56b6c2;
+    padding: 5px;
+}
+

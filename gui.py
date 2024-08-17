@@ -1,21 +1,24 @@
-import time
-import os
 import copy
 import csv
 import itertools
-import sys
 import json
+import os
+import sys
+import time
 from collections import Counter, deque
 
 import cv2
+import emoji
 import mediapipe as mp
 import numpy as np
-from PySide6.QtCore import QObject, Qt, QThread, Signal
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import (QApplication, QComboBox, QGridLayout,
-                               QHBoxLayout, QLabel,QFileDialog, QLineEdit, QMainWindow,
-                               QPushButton, QVBoxLayout, QWidget, QScrollArea,QSizePolicy)
 from model import KeyPointClassifier, PointHistoryClassifier
+from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtGui import QColor, QFont, QImage, QPalette, QPixmap
+from PySide6.QtWidgets import (QApplication, QComboBox, QDockWidget,
+                               QFileDialog, QGridLayout, QHBoxLayout, QLabel,
+                               QLineEdit, QMainWindow, QPushButton,
+                               QScrollArea, QSizePolicy, QStackedWidget,
+                               QVBoxLayout, QWidget)
 from utils.cvfpscalc import CvFpsCalc
 
 
@@ -707,107 +710,172 @@ class FrameProcessor(QObject):
         self.running = False
         self.cap.release()
 
+class SidebarWidget(QWidget):
+    switch_window = Signal(int)
+
+    def __init__(self, stacked_widget):
+        super().__init__()
+        layout = QVBoxLayout(self)
+
+        # Modern Sidebar Styling
+        self.setAutoFillBackground(True)
+        palette = self.palette()
+        palette.setColor(QPalette.Window, QColor(28, 30, 38))  # Sleek dark color
+        self.setPalette(palette)
+
+        # Sidebar Custom Buttons
+        self.buttons = []
+        for index, label in enumerate(["Commands", "Preview"]):
+            button = QPushButton(label)
+            button.clicked.connect(self.create_click_handler(index))
+            layout.addWidget(button)
+            self.buttons.append(button)
+            button.setStyleSheet("""
+                QPushButton {
+                    background-color: #2C2F3C;
+                    color: #FFFFFF;
+                    border: 1px solid #3C3F4C;
+                    padding: 15px;
+                    text-align: left; 
+                    font-family: 'Segoe UI';
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    background-color: #56b6c2; /* Hover effect */
+                }
+            """)
+            button.setMinimumHeight(50)
+
+        layout.addStretch()
+
+    def create_click_handler(self, index):
+        def handler():
+            self.switch_window.emit(index)
+            self.update_button_styles(index)
+        return handler
+    
+    def update_button_styles(self, active_index):
+        for i, button in enumerate(self.buttons):
+            if i == active_index:
+                button.setStyleSheet(button.styleSheet() + "border-left: 4px solid #56b6c2;")
+            else:
+                button.setStyleSheet(button.styleSheet().replace("border-left: 4px solid #56b6c2;", ""))
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("GestuNova")
         self.setFixedSize(1200, 900)
-        # Main widget and layout
+        self.setStyleSheet("background-color: #2c2f3c;")
+
+        # Central Widget and Layout
         central_widget = QWidget(self)
         self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(0)#extra code from appTest.py
+        main_layout = QHBoxLayout(central_widget)
 
+        # Stacked Widget for Content (Main Window)
+        self.stacked_widget = QStackedWidget()
+        main_layout.addWidget(self.stacked_widget)
 
-             #it is good and it is extra code from appTest.py
-        # Heading "GestuNova"
-        heading_label = QLabel("<h1 style='text-align: center; margin: 0;'>GestuNova</h1>")
-        main_layout.addWidget(heading_label)
-        
+        # Sidebar Widget
+        self.sidebar_dock = QDockWidget(self)
+        sidebar_widget = SidebarWidget(self.stacked_widget)
+        sidebar_widget.switch_window.connect(self.stacked_widget.setCurrentIndex)
+        self.sidebar_dock.setWidget(sidebar_widget)
+        self.sidebar_dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.sidebar_dock)
 
-        # Setup the grid layout for controls
+        # Pages
+        self.create_command_binding_page()
+        self.create_preview_page()
+
+    def create_command_binding_page(self):
+        command_binding_widget = QWidget()
+        command_binding_layout = QVBoxLayout(command_binding_widget)
+
+        # Command Binding UI Elements
         grid = QGridLayout()
-        main_layout.addLayout(grid)
-
-        # Command Binding section
-        command_title_label = QLabel("<h1><b><i>Command Binding</i></b></h1>")
+        command_binding_layout.addLayout(grid)
+        command_title_label = QLabel("<h3 style='color: #FFFFFF;'><b><i>Command Binding</i></b></h3>")
         grid.addWidget(command_title_label, 0, 0, 1, 3)
         command_title_label.setMaximumHeight(30)
 
         self.text_entries = {}
-        self.class_names = [
-            "open",
-            "close",
-            "pointer",
-            "okay",
-            "peace",
-            "call",
-            "thumbs up",
-            "thumbs down",
-            "rock",
-        ]
+        self.emoji_mapping = {
+            "open": emoji.emojize(":hand_with_fingers_splayed:"),  
+            "close": emoji.emojize(":raised_fist:"), 
+            "pointer": emoji.emojize(":backhand_index_pointing_right:"),
+            "okay": emoji.emojize(":OK_hand:"), 
+            "peace": emoji.emojize(":victory_hand:"), 
+            "call": emoji.emojize(":call_me_hand:"),
+            "thumbs up": emoji.emojize(":thumbs_up:"), 
+            "thumbs down": emoji.emojize(":thumbs_down:"),
+            "rock": emoji.emojize(":love-you_gesture:")
+        }
 
-        for i, label in enumerate(self.class_names):
-            label_widget = QLabel(f"<h2>{label}</h2>")
+        for i, label in enumerate(self.emoji_mapping):
+            emoji_label = self.emoji_mapping[label]
+            label_widget = QLabel(f"<h3 style='color: #FFFFFF;'>{emoji_label}</h3>")
             textbox = QLineEdit()
+            font = QFont("Noto Color Emoji", 30)  # Use the Noto Color Emoji font
+            label_widget.setFont(font)
             textbox.setPlaceholderText("Command")
-            textbox.setToolTip(
-                "Enter the command to execute for this gesture. Hint: Can concatenate multiple commands with '&&'"
-            )
-            # grid.addWidget(label_widget, i + 1, 0)
-            # grid.addWidget(textbox, i + 1, 1)
-            #code from appTestpy 
+            textbox.setToolTip("Enter the command to execute for this gesture. Hint: Can concatenate multiple commands with '&&'")
+            textbox.setStyleSheet("background-color: #2C2F3C; color: #FFFFFF; padding: 5px; border: 1px solid #3C3F4C;")
             grid.addWidget(label_widget, i % 3 + 1, i // 3 * 2)
             grid.addWidget(textbox, i % 3 + 1, i // 3 * 2 + 1)
             self.text_entries[label] = textbox
 
-
-         # Save, Export, and Import buttons code from appTest py
+        # Save, Export, and Import buttons
         save_button = QPushButton("Save")
         export_button = QPushButton("Export")
         import_button = QPushButton("Import")
 
-        grid.addWidget(save_button, len(self.class_names) // 3 + 2, 0)
-        grid.addWidget(export_button, len(self.class_names) // 3 + 2, 1)
-        grid.addWidget(import_button, len(self.class_names) // 3 + 2, 2)
+        for button in (save_button, export_button, import_button):
+            button.setStyleSheet("""
+                QPushButton {
+                    background-color: #56b6c2;
+                    color: #FFFFFF;
+                    border: none;
+                    padding: 10px;
+                    font-family: 'Segoe UI';
+                    font-size: 12px;
+                }
+                QPushButton:hover {
+                    background-color: #65c7d6;
+                }
+            """)
+            button.setMinimumHeight(40)
+
+        grid.addWidget(save_button, len(self.emoji_mapping) // 3 + 2, 0)
+        grid.addWidget(export_button, len(self.emoji_mapping) // 3 + 2, 1)
+        grid.addWidget(import_button, len(self.emoji_mapping) // 3 + 2, 2)
 
         save_button.clicked.connect(self.update_gesture_commands)
         export_button.clicked.connect(self.on_export_clicked)
         import_button.clicked.connect(self.on_import_clicked)
 
-        # Video preview and controls layout
-        preview_layout = QVBoxLayout()
-        main_layout.addLayout(preview_layout)
+        self.stacked_widget.addWidget(command_binding_widget)
 
-        preview_title_label = QLabel("<h1><b><i>Preview</i></b></h1>")
-        preview_layout.addWidget(preview_title_label)
-        preview_title_label.setMaximumHeight(30)
+    def create_preview_page(self):
+        preview_widget = QWidget()
+        preview_layout = QVBoxLayout(preview_widget)
 
-        # Create a wrapper widget for video feed label code from appTest py 
+        # Video Preview (with larger size)
         video_wrapper = QWidget()
         video_wrapper_layout = QHBoxLayout(video_wrapper)
         video_wrapper_layout.setAlignment(Qt.AlignCenter)
-        preview_layout.addWidget(video_wrapper)
-
-
-        # Create a label for displaying the video feed
-        self.video_label = QLabel("Video Feed Here")
-        self.video_label.setAlignment(Qt.AlignCenter)
-        #preview_layout.addWidget(self.video_label)
-
-    
-        #extra code from appTest py 
-        self.video_label.setStyleSheet("padding:0px; border: 2px solid #999; background-color: #000000;")
+        self.video_label = QLabel()  # No initial text, just an empty label
+        self.video_label.setStyleSheet(
+            "padding: 0px; border: 2px solid #999; background-color: #000000;"
+        )
         self.video_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        width = 800
-        height = int((width / 640) * 480)
-
-        # Set maximum size
-        self.video_label.setMaximumSize(width, height)
-        #self.video_label.setMaximumSize(640, 480)  # Adjust the maximum size here
-        self.video_label.setContentsMargins(0, 0, 0, 0)
+        width = 640  # Set a fixed width for the video
+        height = 480  # Maintain aspect ratio
+        self.video_label.setFixedSize(width, height)
         video_wrapper_layout.addWidget(self.video_label)
+        preview_layout.addWidget(video_wrapper)
 
         # Initialize the frame processor and setup the thread for video processing
         self.processor = FrameProcessor()
@@ -818,32 +886,37 @@ class MainWindow(QMainWindow):
         self.thread.start()
 
         controls_row = QHBoxLayout()
-        preview_layout.addLayout(controls_row)
-
-            # Cooldown textbox
         self.cooldown_textbox = QLineEdit()
+
+        # Cooldown textbox
         self.cooldown_textbox.setPlaceholderText("Gesture Cooldown (s)")
-        self.cooldown_textbox.setToolTip(
-            "Set the cooldown time between executing the same gesture"
-        )
+        self.cooldown_textbox.setToolTip("Set the cooldown time between executing the same gesture")
+        self.cooldown_textbox.setStyleSheet("background-color: #2C2F3C; color: #FFFFFF; padding: 5px; border: 1px solid #3C3F4C;")
         controls_row.addWidget(self.cooldown_textbox)
 
         save_cooldown_btn = QPushButton("Save")
         save_cooldown_btn.setToolTip("Save the cooldown time")
-        save_cooldown_btn.clicked.connect(
-            self.update_cooldown
-        )  # Define this method to handle saving
+        save_cooldown_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #56b6c2;
+                color: #FFFFFF;
+                border: none;
+                padding: 10px;
+                font-family: 'Segoe UI';
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #65c7d6;
+            }
+        """)
         controls_row.addWidget(save_cooldown_btn)
 
-        # Toggle buttons
-        toggle_button_row = QHBoxLayout()
-        preview_layout.addLayout(toggle_button_row)
+        preview_layout.addLayout(controls_row)
+
+        self.stacked_widget.addWidget(preview_widget)
 
     def update_image(self, qImg):
         self.video_label.setPixmap(QPixmap.fromImage(qImg))
-
-    def on_save_clicked(self):
-        print("Save clicked")
 
     def on_export_clicked(self):
         options = QFileDialog.Options()
@@ -873,32 +946,27 @@ class MainWindow(QMainWindow):
             self.processor.gesture_commands = {str(i): command for i, (label, command) in enumerate(commands.items())}
 
     def update_cooldown(self):
-        # Get the text from the QLineEdit
-        print("Update cooldown function called!")
         new_cooldown_value_str = self.cooldown_textbox.text()
 
-        # Convert the text to a float (assuming cooldown is represented in seconds)
         try:
             new_cooldown_value = float(new_cooldown_value_str)
             self.processor.cooldown = new_cooldown_value
         except ValueError:
-            # Handle invalid input (e.g., non-numeric input)
-            # You may want to display an error message to the user
             print("Invalid cooldown value entered:", new_cooldown_value_str)
             return
 
-        # Update the cooldown variable
         self.cooldown = new_cooldown_value
 
     def update_gesture_commands(self):
         self.gesture_commands = {}
-        for i, label in enumerate(self.class_names):
+        for i, label in enumerate(self.emoji_mapping):
             command = self.text_entries[label].text()
             self.processor.gesture_commands[str(i)] = command
         print(self.processor.gesture_commands)
 
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MainWindow()  # Pass the FrameProcessor instance to MainWindow
+    window = MainWindow()
     window.show()
     app.exec()
