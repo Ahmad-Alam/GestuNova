@@ -2,4 +2,4 @@ opencv-python
 mediapipe
 numpy
 PySide6
-
+emoji
